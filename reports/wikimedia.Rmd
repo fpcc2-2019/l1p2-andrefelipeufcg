@@ -53,7 +53,7 @@ buscas %>%
 
 ### 1) Qual é a nossa taxa de cliques geral diária? Como isso varia entre os grupos?
 
-taxa de cliques x dia geral
+Vamos analisar o número geral de cliques e a média de cliques apenas quando o usuário clica em alguma coisa, ou seja, quando num_clicks > 0 no geral.
 
 ```{r}
 #coluna dia day
@@ -96,7 +96,7 @@ summarise(media_total_clicks = mean(num_clicks))
       title = "Média de cliques por dia")
 
 ```
-taxa de cliques x dia grupo
+Vamos analisar o número geral de cliques e a média de cliques apenas quando o usuário clica em alguma coisa, ou seja, quando num_clicks > 0 por grupo.
 
 ```{r}
 
@@ -137,7 +137,7 @@ summarise(media_total_clicks = mean(num_clicks))
 
 ### 2) Quais resultados as pessoas tendem a experimentar primeiro? Como isso muda no dia-a-dia? 
 
-ver distribuição de qual resultado as pessoas clicam primeiro
+Vamos observar a distribuição de qual resultado as pessoas clicam primeiro por grupo. Pela distribuição, vemos que a maior parte experimentam os resultados de 1 a 7.
 
 ```{r}
 
@@ -151,13 +151,15 @@ buscas %>%
     labs(
       x = "Primeiro clique",
       y = "Número de cliques",
+      fill = "Grupo",
       title = "")
 
 ```
 
 ### 3) Qual é a nossa taxa de resultados zero no geral? Como isso varia entre os grupos? 
 
-ver quantos resultados zero a cada dia por grupo e geral
+Vamos observar o número de resultados zero a cada dia por grupo e geral.
+Depois, vamos visualizar a média de resultados zero a cada dia por grupo e geral.
 
 ```{r}
 
@@ -236,56 +238,55 @@ geom_point() +
 
 ### 4) Seja a duração da sessão aproximadamente o tempo entre o primeiro e o último evento de uma sessão. Escolha uma variável do conjunto de dados e descreva sua relação com o tamanho da sessão. Visualize o relacionamento.
 
-ver 90 percentil
-
-sessao x cliques
-
-correlacao pearson spearman kendall 
+Escolhemos a variável número de cliques e vemos sua relação com o tamanho da sessão. 
+Após, vamos visualizar correlação entre as variáveis (pearson, spearman, kendall) 
 
 ```{r}
 
-buscas %>%
-    filter (!is.na(session_length), session_length != 0) %>%
-    ggplot(aes(x = session_length, y = num_clicks)) + 
+cor_buscas_geral = buscas %>%
+    filter (!is.na(session_length), session_length != 0) 
+
+    ggplot(data = cor_buscas_geral, aes(x = session_length, y = num_clicks)) + 
     geom_point() +
     scale_x_continuous(trans = 'log10') +
     #facet_wrap(~ group)  +
     labs(
         x = "duração da sessão",
         y = "cliques",
-        title = "") 
+        title = "Geral") 
 
-buscas %>%
-    filter (!is.na(session_length), session_length != 0) %>%
-    ggplot(aes(x = session_length, y = num_clicks)) + 
+cor_buscas_grupo = buscas %>%
+    filter (!is.na(session_length), session_length != 0) 
+
+    ggplot(data = cor_buscas_grupo, aes(x = session_length, y = num_clicks)) + 
     geom_point() +
     scale_x_continuous(trans = 'log10') +
     facet_wrap(~ group)  +
     labs(
         x = "duração da sessão",
         y = "cliques",
-        title = "") 
-
-# busca_geral_cor = buscas %>%
+        title = "Grupo") 
+# 
+# busca_geral_cor = cor_buscas_geral %>%
 #     summarise(
-#     pearson = cor(session_length, num_clicks, method = "pearson"), 
-#     spearman = cor(session_length, num_clicks, method = "spearman"), 
+#     pearson = cor(session_length, num_clicks, method = "pearson"),
+#     spearman = cor(session_length, num_clicks, method = "spearman"),
 #     kendall = cor(session_length, num_clicks, method = "kendall")
 #   )
 # 
 # busca_grupo_a_cor = buscas %>%
 #     filter(group == 'a') %>%
 #     summarise(
-#     pearson = cor(session_length, num_clicks, method = "pearson"), 
-#     spearman = cor(session_length, num_clicks, method = "spearman"), 
+#     pearson = cor(session_length, num_clicks, method = "pearson"),
+#     spearman = cor(session_length, num_clicks, method = "spearman"),
 #     kendall = cor(session_length, num_clicks, method = "kendall")
 #   )
 # 
 # busca_grupo_b_cor = buscas %>%
 #     filter(group == 'b') %>%
 #     summarise(
-#     pearson = cor(session_length, num_clicks, method = "pearson"), 
-#     spearman = cor(session_length, num_clicks, method = "spearman"), 
+#     pearson = cor(session_length, num_clicks, method = "pearson"),
+#     spearman = cor(session_length, num_clicks, method = "spearman"),
 #     kendall = cor(session_length, num_clicks, method = "kendall")
 #   )
 
