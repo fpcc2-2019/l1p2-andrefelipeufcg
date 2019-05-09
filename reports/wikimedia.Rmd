@@ -1,0 +1,297 @@
+---
+title: "Wikimedia"
+author: "André Felipe"
+output: html_notebook
+#     html_document:
+#       code_folding: hide
+#       toc: true
+#     df_print: paged
+# theme: sandstone
+---
+
+O objeto principal da análise são as buscas e a navegação depois da busca. Criamos esses dados a partir dos dados originais da wikimedia em `/data/search_data.csv`. 
+
+Aqui, exploramos esses dados. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, error=FALSE}
+library(tidyverse)
+library(here)
+library(lubridate)
+library(scales)
+library(gridExtra)
+theme_set(theme_bw())
+options(scipen=999) # nao mostra numeros em notacao cientifica
+```
+
+```{r ETL}
+buscas = read_csv(here::here("data/search_data.csv"))
+
+glimpse(buscas)
+```
+
+```{r}
+buscas %>% 
+    ggplot(aes(x = results)) + 
+    geom_histogram(binwidth = 5) 
+```
+
+
+<!-- Task 
+
+        You must create a reproducible report answering the following questions:
+
+1) What is our daily overall clickthrough rate? How does it vary between the groups? 
+2) Which results do people tend to try first? How does it change day-to-day? 
+3) What is our daily overall zero results rate? How does it vary between the groups? 
+4) Let session length be approximately the time between the first event and the last event in a session. Choose a variable from the dataset and describe its relationship to session length. Visualize the relationship. 
+5) Summarize your findings in an executive summary. 
+-->
+
+## Tarefa 
+
+## Você deve criar um relatório reproduzível respondendo às seguintes perguntas:
+
+### 1) Qual é a nossa taxa de cliques geral diária? Como isso varia entre os grupos?
+
+taxa de cliques x dia geral
+
+```{r}
+#coluna dia day
+buscas <- mutate(buscas, day = round_date(buscas$session_start_date, "day"))
+
+#coluna data date
+buscas <- mutate(buscas, date = as.Date(format(session_start_date, "%Y-%m-%d")))
+
+cliques_por_dia_geral = buscas %>% 
+filter(num_clicks > 0) %>%
+group_by(date) %>%
+summarise(total_clicks = sum(num_clicks))
+
+  ggplot(data=cliques_por_dia_geral, aes(x = date, y = total_clicks)) +
+  geom_line() + 
+    geom_point() + 
+    scale_x_date(date_breaks = "1 day") +
+    #scale_y_continuous(breaks = seq(0,10000,200), trans = "log10") +
+    scale_y_continuous(breaks = seq(0,10000,200)) +
+  labs(
+      x = "Data",
+      y = "cliques",
+      title = "Total de cliques por dia") 
+  
+  media_cliques_por_dia_geral = buscas %>% 
+filter(num_clicks > 0) %>%
+group_by(date) %>%
+summarise(media_total_clicks = mean(num_clicks))
+
+
+  ggplot(data=media_cliques_por_dia_geral, aes(x = date, y = media_total_clicks)) +
+  geom_line() + 
+    geom_point() + 
+    scale_x_date(date_breaks = "1 day") +
+    #scale_y_continuous(breaks = seq(0,10000,200), trans = "log10") +
+    #scale_y_continuous(breaks = seq(0,10000,200)) +
+  labs(
+      x = "Data",
+      y = "cliques",
+      title = "Média de cliques por dia")
+
+```
+taxa de cliques x dia grupo
+
+```{r}
+
+cliques_por_dia_geral = buscas %>% 
+filter(num_clicks > 0) %>%
+group_by(date, group) %>%
+summarise(total_clicks = sum(num_clicks))
+
+  ggplot(data=cliques_por_dia_geral, aes(x = as.Date(date), y = total_clicks, color = group)) +
+  geom_line() + 
+    geom_point() + 
+    scale_x_date(date_breaks = "1 day") +
+    #scale_y_continuous(breaks = seq(0,10000,200), trans = "log10") +
+    scale_y_continuous(breaks = seq(0,6000,200)) +
+  labs(
+      y = "cliques",
+      x = "Data",
+      title = "Total de cliques por dia por grupo") 
+  
+  media_cliques_por_dia_geral = buscas %>% 
+filter(num_clicks > 0) %>%
+group_by(date, group) %>%
+summarise(media_total_clicks = mean(num_clicks))
+
+
+  ggplot(data=media_cliques_por_dia_geral, aes(x = as.Date(date), y = media_total_clicks, color = group)) +
+  geom_line() + 
+    geom_point() + 
+    scale_x_date(date_breaks = "1 day") +
+    #scale_y_continuous(breaks = seq(0,10000,200), trans = "log10") +
+    #scale_y_continuous(breaks = seq(0,0.6,0.1)) +
+  labs(
+      y = "cliques",
+      x = "Data",
+      title = "Média de cliques por dia por grupo")
+
+```
+
+### 2) Quais resultados as pessoas tendem a experimentar primeiro? Como isso muda no dia-a-dia? 
+
+ver distribuição de qual resultado as pessoas clicam primeiro
+
+```{r}
+
+buscas %>% 
+    filter(!is.na(first_click), first_click<=20) %>%
+    count(first_click, group) %>% 
+    ggplot(aes(x = first_click, y = n, fill = group)) + 
+    geom_area() +
+    #scale_x_continuous(breaks = seq(0,20,1), trans = "log10") 
+    scale_x_continuous(breaks = seq(0,20,1)) +
+    labs(
+      x = "Primeiro clique",
+      y = "Número de cliques",
+      title = "")
+
+```
+
+### 3) Qual é a nossa taxa de resultados zero no geral? Como isso varia entre os grupos? 
+
+ver quantos resultados zero a cada dia por grupo e geral
+
+```{r}
+
+resultado_zero_diario_geral = buscas %>% 
+                        filter(results==0) %>% 
+                            group_by(date) %>% 
+                                summarise(numero_resultado_zero_geral=n()) 
+
+resultado_total_diario_geral = buscas  %>%
+                        group_by(date) %>% 
+                            summarise(total_resultados_geral=n())
+
+resultado_zero_diario_grupo = buscas %>% 
+                        filter(results==0) %>% 
+                            group_by(date, group) %>% 
+                                summarise(numero_resultado_zero_grupo=n()) 
+
+resultado_total_diario_grupo = buscas  %>%
+                        group_by(date, group) %>% 
+                            summarise(total_resultados_grupo=n())
+
+
+
+calculo_taxa_resultado_zero_geral = resultado_zero_diario_geral %>% 
+                            inner_join(resultado_total_diario_geral, by=c("date")) %>%
+                                mutate(taxa_resultado_zero_geral = numero_resultado_zero_geral/total_resultados_geral)
+
+calculo_taxa_resultado_zero_grupo = resultado_zero_diario_grupo %>% 
+                            inner_join(resultado_total_diario_grupo, by=c("date", "group")) %>%
+                                mutate(taxa_resultado_zero_grupo = numero_resultado_zero_grupo/total_resultados_grupo)
+
+
+ggplot(data=resultado_zero_diario_geral, aes(x=date, y=numero_resultado_zero_geral))+
+geom_line() + 
+geom_point() + 
+  scale_x_date(date_breaks = "1 day") +
+  #scale_y_continuous(breaks = seq(0,2600,100)) +
+  labs(title = "",
+       x = "Data", 
+       y="Resultados Zero",
+       group = "")
+
+ggplot(data=resultado_zero_diario_grupo, aes(x=date, y=numero_resultado_zero_grupo, group=group, color=group))+
+geom_line() + 
+geom_point() + 
+  scale_x_date(date_breaks = "1 day") +
+  scale_y_continuous(breaks = seq(0,2600,100)) +
+  labs(title = "",
+       x = "Data", 
+       y="Resultados Zero",
+       group = "Grupo", 
+       color = "Grupo")
+  
+ggplot(data=calculo_taxa_resultado_zero_geral, aes(x=date, y=taxa_resultado_zero_geral))+
+geom_line() + 
+geom_point() + 
+  scale_x_date(date_breaks = "1 day") +
+  #scale_y_continuous(breaks = seq(0,2600,100)) +
+  labs(title = "",
+       x = "Data", 
+       y="Resultados Zero",
+       group = "")
+
+ggplot(data=calculo_taxa_resultado_zero_grupo, aes(x=date, y=taxa_resultado_zero_grupo, group=group, color=group))+
+geom_line() + 
+geom_point() + 
+  scale_x_date(date_breaks = "1 day") +
+  #scale_y_continuous(breaks = seq(0,2600,100)) +
+  labs(title = "",
+       x = "Data", 
+       y="Resultados Zero",
+       group = "Grupo", 
+       color = "Grupo")
+
+```
+
+### 4) Seja a duração da sessão aproximadamente o tempo entre o primeiro e o último evento de uma sessão. Escolha uma variável do conjunto de dados e descreva sua relação com o tamanho da sessão. Visualize o relacionamento.
+
+ver 90 percentil
+
+sessao x cliques
+
+correlacao pearson spearman kendall 
+
+```{r}
+
+buscas %>%
+    filter (!is.na(session_length), session_length != 0) %>%
+    ggplot(aes(x = session_length, y = num_clicks)) + 
+    geom_point() +
+    scale_x_continuous(trans = 'log10') +
+    #facet_wrap(~ group)  +
+    labs(
+        x = "duração da sessão",
+        y = "cliques",
+        title = "") 
+
+buscas %>%
+    filter (!is.na(session_length), session_length != 0) %>%
+    ggplot(aes(x = session_length, y = num_clicks)) + 
+    geom_point() +
+    scale_x_continuous(trans = 'log10') +
+    facet_wrap(~ group)  +
+    labs(
+        x = "duração da sessão",
+        y = "cliques",
+        title = "") 
+
+# busca_geral_cor = buscas %>%
+#     summarise(
+#     pearson = cor(session_length, num_clicks, method = "pearson"), 
+#     spearman = cor(session_length, num_clicks, method = "spearman"), 
+#     kendall = cor(session_length, num_clicks, method = "kendall")
+#   )
+# 
+# busca_grupo_a_cor = buscas %>%
+#     filter(group == 'a') %>%
+#     summarise(
+#     pearson = cor(session_length, num_clicks, method = "pearson"), 
+#     spearman = cor(session_length, num_clicks, method = "spearman"), 
+#     kendall = cor(session_length, num_clicks, method = "kendall")
+#   )
+# 
+# busca_grupo_b_cor = buscas %>%
+#     filter(group == 'b') %>%
+#     summarise(
+#     pearson = cor(session_length, num_clicks, method = "pearson"), 
+#     spearman = cor(session_length, num_clicks, method = "spearman"), 
+#     kendall = cor(session_length, num_clicks, method = "kendall")
+#   )
+
+    
+```
+
+<!--
+### 5) Resuma suas descobertas em um resumo executivo.
+-->
